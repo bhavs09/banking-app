@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+
+  # ─────────────────────────────────────
+  # TIER 3 — DATABASE (MySQL)
+  # Starts FIRST because backend needs it
+  # ─────────────────────────────────────
+  database:
+    image: mysql:8.0
+    container_name: securebank-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: securebank
+      MYSQL_USER: bankuser
+      MYSQL_PASSWORD: bankpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      # Mount init.sql — MySQL auto-runs this on first startup
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # Persist database data
+      - mysql_data:/var/lib/mysql
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ─────────────────────────────────────
+  # TIER 2 — BACKEND (Java REST API)
+  # Starts AFTER database is healthy
+  # ─────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: securebank-backend
+    environment:
+      DB_URL: jdbc:mysql://database:3306/securebank
+      DB_USER: bankuser
+      DB_PASS: bankpassword
+    ports:
+      - "8080:8080"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - banking-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ─────────────────────────────────────
+  # TIER 1 — FRONTEND (Nginx)
+  # Starts AFTER backend is healthy
+  # ─────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: securebank-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - banking-network
+    restart: on-failure
+
+# ─────────────────────────────────────
+# NETWORKS
+# ─────────────────────────────────────
+networks:
+  banking-network:
+    driver: bridge
+
+# ─────────────────────────────────────
+# VOLUMES
+# ─────────────────────────────────────
+volumes:
+  mysql_data:

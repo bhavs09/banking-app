@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank - Banking Portal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f4f8; }
+        .header { background: #1A3C6E; color: white; padding: 20px 40px; 
+                  display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; }
+        .header p { font-size: 12px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; padding: 25px; margin: 20px 0; 
+                border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { color: #1A3C6E; margin-bottom: 15px; border-bottom: 2px solid #E8F0FA; padding-bottom: 10px; }
+        .btn { background: #1A3C6E; color: white; padding: 10px 20px; 
+               border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 15px; }
+        .btn:hover { background: #2a5298; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1A3C6E; color: white; padding: 12px; text-align: left; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        tr:hover { background: #f9f9f9; }
+        .balance { color: #1E7A1E; font-weight: bold; font-size: 15px; }
+        .status { display: inline-block; padding: 4px 10px; border-radius: 12px; 
+                  font-size: 11px; background: #E8FFE8; color: #1E7A1E; }
+        .loading { color: #888; font-style: italic; padding: 20px; }
+        .error { color: #cc0000; padding: 10px; background: #fff0f0; border-radius: 4px; }
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .summary-card { background: #1A3C6E; color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .summary-card h3 { font-size: 28px; margin-bottom: 5px; }
+        .summary-card p { font-size: 12px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🏦 SecureBank</h1>
+            <p>Your trusted banking partner</p>
+        </div>
+        <div>
+            <span class="status">● System Online</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary Cards -->
+        <div class="summary">
+            <div class="summary-card">
+                <h3 id="total-accounts">-</h3>
+                <p>Total Accounts</p>
+            </div>
+            <div class="summary-card">
+                <h3 id="total-transactions">-</h3>
+                <p>Total Transactions</p>
+            </div>
+            <div class="summary-card">
+                <h3 id="total-balance">-</h3>
+                <p>Total Balance (Rs.)</p>
+            </div>
+        </div>
+
+        <!-- Accounts Section -->
+        <div class="card">
+            <h2>👤 Accounts</h2>
+            <button class="btn" onclick="loadAccounts()">🔄 Refresh Accounts</button>
+            <div id="accounts-container">
+                <p class="loading">Click button to load accounts...</p>
+            </div>
+        </div>
+
+        <!-- Transactions Section -->
+        <div class="card">
+            <h2>💸 Transactions</h2>
+            <button class="btn" onclick="loadTransactions()">🔄 Refresh Transactions</button>
+            <div id="transactions-container">
+                <p class="loading">Click button to load transactions...</p>
+            </div>
+        </div>
+
+        <!-- Health Status -->
+        <div class="card">
+            <h2>⚡ System Health</h2>
+            <button class="btn" onclick="checkHealth()">🔍 Check Health</button>
+            <div id="health-container">
+                <p class="loading">Click button to check health...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        function loadAccounts() {
+            document.getElementById('accounts-container').innerHTML = '<p class="loading">Loading...</p>';
+            fetch(API + '/accounts')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('accounts-container').innerHTML =
+                            '<p class="error">Error: ' + data.error + '</p>';
+                        return;
+                    }
+                    let total = 0;
+                    let html = '<table><tr><th>Account Number</th><th>Name</th><th>Balance</th></tr>';
+                    data.accounts.forEach(a => {
+                        total += a.balance;
+                        html += '<tr><td>' + a.account + '</td><td>' + a.name +
+                                '</td><td class="balance">Rs. ' + a.balance.toLocaleString() + '</td></tr>';
+                    });
+                    html += '</table>';
+                    document.getElementById('accounts-container').innerHTML = html;
+                    document.getElementById('total-accounts').textContent = data.accounts.length;
+                    document.getElementById('total-balance').textContent = 'Rs.' + total.toLocaleString();
+                })
+                .catch(e => {
+                    document.getElementById('accounts-container').innerHTML =
+                        '<p class="error">Failed to connect to backend: ' + e.message + '</p>';
+                });
+        }
+
+        function loadTransactions() {
+            document.getElementById('transactions-container').innerHTML = '<p class="loading">Loading...</p>';
+            fetch(API + '/transactions')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('transactions-container').innerHTML =
+                            '<p class="error">Error: ' + data.error + '</p>';
+                        return;
+                    }
+                    let html = '<table><tr><th>From</th><th>To</th><th>Amount</th><th>Type</th><th>Description</th></tr>';
+                    data.transactions.forEach(t => {
+                        html += '<tr><td>' + t.from + '</td><td>' + t.to +
+                                '</td><td class="balance">Rs. ' + t.amount.toLocaleString() +
+                                '</td><td>' + t.type + '</td><td>' + t.description + '</td></tr>';
+                    });
+                    html += '</table>';
+                    document.getElementById('transactions-container').innerHTML = html;
+                    document.getElementById('total-transactions').textContent = data.transactions.length;
+                })
+                .catch(e => {
+                    document.getElementById('transactions-container').innerHTML =
+                        '<p class="error">Failed to connect to backend: ' + e.message + '</p>';
+                });
+        }
+
+        function checkHealth() {
+            fetch('/health')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('health-container').innerHTML =
+                        '<p style="color:green">✅ Status: ' + data.status + ' | Service: ' + data.service + '</p>';
+                })
+                .catch(e => {
+                    document.getElementById('health-container').innerHTML =
+                        '<p class="error">❌ Health check failed</p>';
+                });
+        }
+
+        // Auto-load on page open
+        loadAccounts();
+        loadTransactions();
+    </script>
+</body>
+</html>
