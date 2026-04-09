@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-sql
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS securebank;
+    USE securebank;
+
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS accounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        account_number VARCHAR(20) UNIQUE NOT NULL,
+        balance DECIMAL(10,2) DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        from_account VARCHAR(20),
+        to_account VARCHAR(20),
+        amount DECIMAL(10,2) NOT NULL,
+        type VARCHAR(20) NOT NULL,
+        description VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    INSERT IGNORE INTO users (name, email, password) VALUES
+    ('Bhavana', 'bhavana@securebank.com', 'pass123'),
+    ('Rahul', 'rahul@securebank.com', 'pass123');
+
+    INSERT IGNORE INTO accounts (user_id, account_number, balance) VALUES
+    (1, 'SB001001', 50000.00),
+    (2, 'SB001002', 75000.00);
+
+    INSERT IGNORE INTO transactions (from_account, to_account, amount, type, description) VALUES
+    ('SB001001', 'SB001002', 5000.00, 'TRANSFER', 'Payment to Rahul'),
+    ('SB001002', 'SB001001', 2000.00, 'TRANSFER', 'Refund from Rahul');

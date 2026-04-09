@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: bhavs1999/securebank-backend:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: securebank-config
+                  key: DB_URL
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: securebank-config
+                  key: DB_USER
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: securebank-secrets
+                  key: mysql-password
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 3
