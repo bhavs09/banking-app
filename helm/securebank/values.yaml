@@ -1,0 +1,28 @@
+replicaCount:
+  backend: 2
+  frontend: 2
+
+backend:
+  image:
+    repository: bhavs1999/securebank-backend
+    tag: v2
+  port: 8080
+
+frontend:
+  image:
+    repository: bhavs1999/securebank-frontend
+    tag: v2
+  port: 80
+  nodePort: 30080
+
+database:
+  image: mysql:8.0
+  port: 3306
+
+secrets:
+  mysqlRootPassword: rootpassword
+  mysqlPassword: bankpassword
+
+config:
+  dbUrl: "jdbc:mysql://database-service:3306/securebank"
+  dbUser: "bankuser"
